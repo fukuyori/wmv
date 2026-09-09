@@ -1,9 +1,9 @@
 ; wmv Inno Setup Script
 ;
-; 通常は scripts\build-installer.ps1 から呼び出す。スクリプトは次の定義を渡す:
-;   /DMyAppVersion=<version>  wmv.csproj の <Version>（省略時は 0.0.0）
-;   /DSIGN                    署名を有効化（SignTool / SignedUninstaller）
-;   /Swmvsign=<command>       署名コマンド（$f が対象ファイル、$q が二重引用符）
+; Normally invoked from scripts\build-installer.ps1, which passes these definitions:
+;   /DMyAppVersion=<version>  <Version> from wmv.csproj (defaults to 0.0.0)
+;   /DSIGN                    enable signing (SignTool / SignedUninstaller)
+;   /Swmvsign=<command>       sign command ($f = file to sign, $q = double quote)
 
 #ifndef MyAppVersion
   #define MyAppVersion "0.0.0"
@@ -37,7 +37,7 @@ WizardStyle=modern
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-; 起動中の wmv.exe を Restart Manager 経由で終了させてから上書きする。
+; Close a running wmv.exe via Restart Manager before overwriting it.
 CloseApplications=yes
 CloseApplicationsFilter=*.exe
 RestartApplications=no
@@ -51,7 +51,7 @@ Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "startup"; Description: "サインイン時に自動起動する"; GroupDescription: "自動起動:"
+Name: "startup"; Description: "Start {#MyAppName} automatically at sign-in"; GroupDescription: "Startup:"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
@@ -59,22 +59,27 @@ Source: "{#MyPublishDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversio
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\{#MyAppName} をアンインストール"; Filename: "{uninstallexe}"
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startup
+
+[Registry]
+; Startup uses the same HKCU\...\Run value "wmv" as the app's tray menu. Removed on uninstall.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsdeletevalue; Tasks: startup
+; Remove the value when reinstalling with the startup task unchecked.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "{#MyAppName}"; Flags: deletevalue; Tasks: not startup
 
 [InstallDelete]
-; 自動起動タスクを外して再インストールした場合に古いショートカットを残さない。
+; Remove the Startup-folder shortcut created by an earlier installer version.
 Type: files; Name: "{userstartup}\{#MyAppName}.lnk"
 
 [UninstallDelete]
 Type: files; Name: "{userstartup}\{#MyAppName}.lnk"
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{#MyAppName} を起動"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-// アンインストール時は常駐中の wmv.exe を終了させる（Restart Manager はアンインストールでは使われないため）。
+// Terminate a resident wmv.exe on uninstall (Restart Manager is not used for uninstalls).
 function InitializeUninstall(): Boolean;
 var
   ResultCode: Integer;

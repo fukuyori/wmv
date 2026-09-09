@@ -1,30 +1,30 @@
 <#
 .SYNOPSIS
-wmv の Inno Setup インストーラーを作成する。-Sign で実行ファイル・インストーラー・アンインストーラーに電子署名する。
+Build the wmv Inno Setup installer. With -Sign, code-sign the executable, the installer and the uninstaller.
 
 .DESCRIPTION
-1. scripts\build-release.ps1 で自己完結・単一ファイルの wmv.exe を publish する（-SkipPublish で省略可）。
-2. -Sign 指定時は signtool.exe で wmv.exe に署名する。
-3. Inno Setup (ISCC.exe) で installer.iss をコンパイルする。バージョンは wmv.csproj の <Version> から取得する。
-   -Sign 指定時は /DSIGN と /Swmvsign=... を渡し、Inno Setup の SignTool / SignedUninstaller 機能で
-   インストーラー本体とアンインストーラーの両方に署名する。
-4. -Sign 指定時は署名を signtool verify で検証する。
+1. Publish a self-contained single-file wmv.exe via scripts\build-release.ps1 (skip with -SkipPublish).
+2. With -Sign, sign wmv.exe using signtool.exe.
+3. Compile installer.iss with Inno Setup (ISCC.exe). The version is read from <Version> in wmv.csproj.
+   With -Sign, /DSIGN and /Swmvsign=... are passed so Inno Setup's SignTool / SignedUninstaller
+   features sign both the installer and the uninstaller.
+4. With -Sign, verify the signatures with signtool verify.
 
 .PARAMETER Sign
-電子署名を行う。証明書は環境変数 CODESIGN_CERT で指定する（以下のいずれか）。
-  - 証明書ファイル (.pfx / .p12) のパス。パスワードは CODESIGN_PASSWORD
-  - 証明書ストア内の証明書の SHA-1 拇印（40 桁）
-  - 証明書ストア内の証明書のサブジェクト名（signtool /n）
-タイムスタンプサーバーは CODESIGN_TIMESTAMP_URL（既定: http://timestamp.digicert.com）。
+Enable code signing. The certificate is taken from the CODESIGN_CERT environment variable (one of):
+  - Path to a certificate file (.pfx / .p12). Password in CODESIGN_PASSWORD.
+  - SHA-1 thumbprint (40 hex digits) of a certificate in the certificate store.
+  - Subject name of a certificate in the certificate store (signtool /n).
+Timestamp server: CODESIGN_TIMESTAMP_URL (default: http://timestamp.digicert.com).
 
 .PARAMETER SkipPublish
-publish を省略し、既存の publish 出力を使う。
+Reuse the existing publish output instead of publishing.
 
 .PARAMETER IsccPath
-ISCC.exe のパス。省略時は PATH と既定のインストール先から探す。
+Path to ISCC.exe. If omitted, PATH and the default install locations are searched.
 
 .PARAMETER SignToolPath
-signtool.exe のパス。省略時は PATH と Windows SDK から探す。
+Path to signtool.exe. If omitted, PATH and the Windows SDK are searched.
 
 .EXAMPLE
 .\scripts\build-installer.ps1
@@ -81,7 +81,7 @@ function Resolve-SignToolPath {
         $candidates = Get-ChildItem -Path $root -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue |
             Sort-Object FullName -Descending
 
-        # x64 版を優先し、無ければ x86 版にフォールバックする。
+        # Prefer the x64 build; fall back to x86.
         $found = $candidates | Where-Object { $_.Directory.Name -eq "x64" } | Select-Object -First 1
         if (-not $found) {
             $found = $candidates | Where-Object { $_.Directory.Name -eq "x86" } | Select-Object -First 1
@@ -134,7 +134,7 @@ function Get-CodeSignSettings {
         $timestampUrl = "http://timestamp.digicert.com"
     }
 
-    # 1) 証明書ファイル (.pfx / .p12) のパス
+    # 1) Path to a certificate file (.pfx / .p12)
     if (Test-Path -LiteralPath $cert) {
         return [pscustomobject]@{
             Mode         = "File"
@@ -148,7 +148,7 @@ function Get-CodeSignSettings {
         throw "CODESIGN_CERT points to a certificate file that does not exist: $cert"
     }
 
-    # 2) 40 桁の拇印 (空白やコロン区切りも許容)
+    # 2) 40-digit thumbprint (whitespace and colon separators are tolerated)
     $thumbprint = ($cert -replace '[\s:]', '')
     if ($thumbprint -match '^[0-9a-fA-F]{40}$') {
         return [pscustomobject]@{
@@ -159,7 +159,7 @@ function Get-CodeSignSettings {
         }
     }
 
-    # 3) それ以外は証明書ストア内のサブジェクト名 (signtool /n) とみなす
+    # 3) Otherwise treat it as a subject name in the certificate store (signtool /n)
     return [pscustomobject]@{
         Mode         = "Subject"
         Certificate  = $cert
@@ -202,8 +202,8 @@ function Get-InnoSignCommand {
         [object]$Settings
     )
 
-    # $q は Inno Setup が二重引用符に、$f は署名対象ファイル名に置き換える。
-    # PowerShell 側で引用符を含めないことで、引数の受け渡しを安定させる。
+    # Inno Setup replaces $q with a double quote and $f with the file to sign.
+    # Keeping quotes out of the PowerShell side makes argument passing reliable.
     $command = "`$q$SignTool`$q sign /fd SHA256 /tr $($Settings.TimestampUrl) /td SHA256"
 
     switch ($Settings.Mode) {
@@ -255,8 +255,8 @@ if ($Sign) {
 $IsccArgs = @("/DMyAppVersion=$Version")
 
 if ($Sign) {
-    # /DSIGN で installer.iss の SignTool / SignedUninstaller 指令を有効化し、
-    # /S で署名コマンドを登録する。これによりインストーラー本体とアンインストーラーの双方が署名される。
+    # /DSIGN enables the SignTool / SignedUninstaller directives in installer.iss and
+    # /S registers the sign command, so both the installer and the uninstaller get signed.
     $IsccArgs += "/DSIGN"
     $IsccArgs += "/S$InnoSignToolName=$(Get-InnoSignCommand -SignTool $SignTool -Settings $SignSettings)"
 }

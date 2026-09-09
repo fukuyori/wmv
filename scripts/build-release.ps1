@@ -1,15 +1,15 @@
 <#
 .SYNOPSIS
-wmv をリリース用に publish する（自己完結・単一ファイル）。
+Publish wmv for release (self-contained, single file).
 
 .PARAMETER Configuration
-ビルド構成。既定は Release。
+Build configuration. Default: Release.
 
 .PARAMETER Runtime
-ランタイム識別子。既定は win-x64。
+Runtime identifier. Default: win-x64.
 
 .PARAMETER Clean
-publish 出力ディレクトリを削除してから publish する。
+Delete the publish output directory before publishing.
 
 .EXAMPLE
 .\scripts\build-release.ps1
@@ -28,8 +28,8 @@ $ProjectPath = Join-Path $RepoRoot "wmv.csproj"
 $PublishDir = Join-Path $RepoRoot "bin\$Configuration\net10.0-windows\$Runtime\publish"
 $ExePath = Join-Path $PublishDir "wmv.exe"
 
-# このリポジトリの bin 配下から起動中の wmv.exe があると、出力ファイルを上書きできず publish が失敗する
-# (GenerateBundle: Access to the path ... is denied)。インストール済みの wmv.exe は対象外。
+# A wmv.exe running from this repository's bin folder locks the output file and makes publish fail
+# (GenerateBundle: Access to the path ... is denied). An installed wmv.exe is left alone.
 Get-Process -Name "wmv" -ErrorAction SilentlyContinue |
     Where-Object { $_.Path -and $_.Path.StartsWith("$RepoRoot\", [System.StringComparison]::OrdinalIgnoreCase) } |
     ForEach-Object {
@@ -45,7 +45,7 @@ if ($Clean -and (Test-Path $PublishDir)) {
 dotnet restore $ProjectPath
 if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed ($LASTEXITCODE)." }
 
-# 自己完結・単一ファイルで publish する。.NET ランタイム未導入の PC でも動作させるため。
+# Self-contained single-file publish so the app runs on PCs without the .NET runtime installed.
 dotnet publish $ProjectPath -c $Configuration -r $Runtime --self-contained true `
     -p:PublishSingleFile=true `
     -p:IncludeNativeLibrariesForSelfExtract=true `

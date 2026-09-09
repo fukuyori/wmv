@@ -19,7 +19,8 @@ Built as a replacement for the PowerToys "Grab and Move" module (Alt + left drag
 ## Usage
 
 - wmv has no main window. It lives in the notification area (system tray).
-- Right-click the tray icon for **Enable** (toggle) and **Exit**. Double-clicking the icon also toggles enable/disable.
+- Right-click the tray icon for **Enable** (toggle), **Start at sign-in** (toggle) and **Exit**. Double-clicking the icon also toggles enable/disable.
+- "Start at sign-in" writes the value `wmv` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`. The installer's option uses the same value, so the menu always shows the current state.
 - Only one instance runs at a time; launching it again does nothing.
 - If you also use PowerToys Grab and Move, disable that module to avoid double handling.
 - To change the resize modifier (Ctrl or Alt instead of Shift), edit the `ResizeModifierKey` constant in `WindowMover.cs`.
@@ -28,7 +29,7 @@ Built as a replacement for the PowerToys "Grab and Move" module (Alt + left drag
 
 Run `wmv_Setup_<version>.exe`. The installer is per-user (no administrator rights needed) and offers:
 
-- "Start automatically at sign-in" (adds a shortcut to the Startup folder)
+- "Start automatically at sign-in" (registers the `Run` registry value; removed on uninstall)
 - Desktop shortcut (unchecked by default)
 
 The installer closes a running wmv before updating, and the uninstaller stops it before removing files.
