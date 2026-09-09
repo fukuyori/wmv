@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Wmv</RootNamespace>
+    <AssemblyName>wmv</AssemblyName>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <Version>0.7.0</Version>
+    <ApplicationIcon>wmv.ico</ApplicationIcon>
+    <Product>wmv</Product>
+    <Description>Move any window by middle-button dragging.</Description>
+    <!-- SYSLIB1054: DllImport is intentionally used instead of LibraryImport for simplicity. -->
+    <NoWarn>$(NoWarn);SYSLIB1054</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="wmv.ico" LogicalName="wmv.ico" />
+  </ItemGroup>
+
+</Project>
