@@ -6,6 +6,12 @@
 
 PowerToys の「Grab and Move」モジュール（Alt＋左ドラッグ）の代替として作成しています。
 
+## デモ動画
+
+[![wmv デモ動画](https://img.youtube.com/vi/1C_a8ffqcGs/hqdefault.jpg)](https://www.youtube.com/watch?v=1C_a8ffqcGs)
+
+YouTube で見る: https://www.youtube.com/watch?v=1C_a8ffqcGs
+
 ## 機能
 
 - **移動**: ウインドウ上の任意の位置でミドルボタンを押してドラッグすると、カーソル直下のトップレベルウインドウが移動します。

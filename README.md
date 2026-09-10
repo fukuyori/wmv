@@ -6,6 +6,12 @@ A small tray-resident Windows utility that lets you move any window by dragging 
 
 Built as a replacement for the PowerToys "Grab and Move" module (Alt + left drag).
 
+## Demo
+
+[![wmv demo video](https://img.youtube.com/vi/1C_a8ffqcGs/hqdefault.jpg)](https://www.youtube.com/watch?v=1C_a8ffqcGs)
+
+Watch on YouTube: https://www.youtube.com/watch?v=1C_a8ffqcGs
+
 ## Features
 
 - **Move**: press the middle button anywhere on a window and drag. The top-level window under the cursor moves.
