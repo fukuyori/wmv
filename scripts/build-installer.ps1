@@ -4,11 +4,17 @@ Build the wmv Inno Setup installer. With -Sign, code-sign the executable, the in
 
 .DESCRIPTION
 1. Publish a self-contained single-file wmv.exe via scripts\build-release.ps1 (skip with -SkipPublish).
+   By default the exe carries a uiAccess manifest so wmv can move windows of elevated processes.
 2. With -Sign, sign wmv.exe using signtool.exe.
 3. Compile installer.iss with Inno Setup (ISCC.exe). The version is read from <Version> in wmv.csproj.
    With -Sign, /DSIGN and /Swmvsign=... are passed so Inno Setup's SignTool / SignedUninstaller
    features sign both the installer and the uninstaller.
 4. With -Sign, verify the signatures with signtool verify.
+
+The default (uiAccess) build requires -Sign and installs per-machine under Program Files, because
+Windows only starts uiAccess executables that are signed with a machine-trusted certificate and
+located in a secure location. Use -NoUiAccess for an unsigned, per-user build that cannot act on
+elevated windows.
 
 .PARAMETER Sign
 Enable code signing. The certificate is taken from the CODESIGN_CERT environment variable (one of):
@@ -26,14 +32,14 @@ Path to ISCC.exe. If omitted, PATH and the default install locations are searche
 .PARAMETER SignToolPath
 Path to signtool.exe. If omitted, PATH and the Windows SDK are searched.
 
-.PARAMETER UiAccess
-Publish with the uiAccess="true" manifest (passed through to build-release.ps1). Requires -Sign;
-an unsigned uiAccess executable does not start.
+.PARAMETER NoUiAccess
+Build without the uiAccess manifest (passed through to build-release.ps1): an unsigned, per-user
+installer that cannot move windows of elevated processes. Signing is optional in this mode.
 
 .EXAMPLE
-.\scripts\build-installer.ps1
 .\scripts\build-installer.ps1 -Sign
-.\scripts\build-installer.ps1 -Sign -UiAccess
+.\scripts\build-installer.ps1 -NoUiAccess
+.\scripts\build-installer.ps1 -NoUiAccess -Sign
 $env:CODESIGN_CERT = "0123456789ABCDEF0123456789ABCDEF01234567"; .\scripts\build-installer.ps1 -Sign
 #>
 param(
@@ -41,11 +47,13 @@ param(
     [switch]$SkipPublish,
     [string]$IsccPath,
     [string]$SignToolPath,
-    [switch]$UiAccess
+    [switch]$NoUiAccess
 )
 
+$UiAccess = -not $NoUiAccess
+
 if ($UiAccess -and -not $Sign) {
-    throw "-UiAccess requires -Sign: an unsigned uiAccess executable refuses to start."
+    throw "The default uiAccess build requires -Sign (an unsigned uiAccess executable refuses to start). Pass -Sign, or -NoUiAccess for a plain per-user build."
 }
 
 $ErrorActionPreference = "Stop"
@@ -259,7 +267,7 @@ if ($Sign) {
 $Iscc = Resolve-IsccPath -Preferred $IsccPath
 
 if (-not $SkipPublish) {
-    & $ReleaseScript -UiAccess:$UiAccess
+    & $ReleaseScript -NoUiAccess:$NoUiAccess
 }
 
 if (-not (Test-Path $PublishExePath)) {
@@ -270,10 +278,10 @@ if (-not (Test-Path $PublishExePath)) {
 # "A referral was returned from the server"), or a normal executable into the per-machine one.
 $exeHasUiAccess = Test-UiAccessManifest -Path $PublishExePath
 if ($exeHasUiAccess -and -not $UiAccess) {
-    throw "The published wmv.exe carries a uiAccess manifest but -UiAccess was not specified. Re-run with -Sign -UiAccess, or without -SkipPublish to publish a normal build."
+    throw "The published wmv.exe carries a uiAccess manifest but -NoUiAccess was specified. Re-run without -SkipPublish to publish a plain build."
 }
 if ($UiAccess -and -not $exeHasUiAccess) {
-    throw "-UiAccess was specified but the published wmv.exe has no uiAccess manifest. Re-run without -SkipPublish."
+    throw "The published wmv.exe has no uiAccess manifest. Re-run without -SkipPublish, or pass -NoUiAccess."
 }
 
 if ($Sign) {
@@ -283,9 +291,9 @@ if ($Sign) {
 
 $IsccArgs = @("/DMyAppVersion=$Version")
 
-if ($UiAccess) {
-    # Per-machine install under Program Files; uiAccess executables do not start elsewhere.
-    $IsccArgs += "/DUIACCESS"
+if (-not $UiAccess) {
+    # Plain build: per-user install (installer.iss defaults to the per-machine uiAccess layout).
+    $IsccArgs += "/DNOUIACCESS"
 }
 
 if ($Sign) {

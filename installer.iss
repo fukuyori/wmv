@@ -4,8 +4,10 @@
 ;   /DMyAppVersion=<version>  <Version> from wmv.csproj (defaults to 0.0.0)
 ;   /DSIGN                    enable signing (SignTool / SignedUninstaller)
 ;   /Swmvsign=<command>       sign command ($f = file to sign, $q = double quote)
-;   /DUIACCESS                the exe carries a uiAccess manifest: install per-machine under
-;                             Program Files (a secure location), which requires administrator rights
+;   /DNOUIACCESS              the exe has no uiAccess manifest: install per-user without
+;                             administrator rights. By default the exe carries a uiAccess manifest
+;                             and must live under Program Files (a secure location), so the
+;                             installer is per-machine and requires administrator rights.
 
 #ifndef MyAppVersion
   #define MyAppVersion "0.0.0"
@@ -36,11 +38,11 @@ UninstallDisplayName={#MyAppName}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-#ifdef UIACCESS
+#ifdef NOUIACCESS
+PrivilegesRequired=lowest
+#else
 ; uiAccess executables only start from a secure location such as {commonpf}, so install per-machine.
 PrivilegesRequired=admin
-#else
-PrivilegesRequired=lowest
 #endif
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible

@@ -14,7 +14,7 @@ Built as a replacement for the PowerToys "Grab and Move" module (Alt + left drag
 - **Maximized windows** are restored to their normal size when a drag starts and repositioned so the grab point keeps its relative position, just like dragging the title bar.
 - **Excluded**: minimized windows, the desktop, taskbar, task view, tooltips, popup menus and other shell windows.
 - Resizing only applies to windows that have a sizing border (`WS_THICKFRAME`); other windows and maximized windows fall back to moving.
-- Windows running elevated cannot be moved unless wmv itself runs elevated (UIPI restriction, same as Grab and Move).
+- **Elevated (administrator) windows** such as Rufus or backup tools can be moved as well. The release build carries a `uiAccess="true"` manifest, which Windows honours only when the executable is code-signed with a machine-trusted certificate and installed under Program Files. A `-NoUiAccess` build, or wmv started from any other location, is subject to UIPI and cannot touch elevated windows (the same limitation PowerToys Grab and Move has).
 
 ## Usage
 
@@ -27,12 +27,14 @@ Built as a replacement for the PowerToys "Grab and Move" module (Alt + left drag
 
 ## Installation
 
-Run `wmv_Setup_<version>.exe`. The installer is per-user (no administrator rights needed) and offers:
+Run `wmv_Setup_<version>.exe`. The installer is per-machine (installs under Program Files, administrator rights required, see the uiAccess note above) and offers:
 
 - "Start automatically at sign-in" (registers the `Run` registry value; removed on uninstall)
 - Desktop shortcut (unchecked by default)
 
-The installer closes a running wmv before updating, and the uninstaller stops it before removing files.
+The installer stops a running wmv before updating, and the uninstaller stops it before removing files.
+
+An installer built with `-NoUiAccess` is per-user instead (no administrator rights, installs under `%LOCALAPPDATA%\Programs`) and cannot move elevated windows.
 
 ## Building
 
@@ -42,28 +44,29 @@ Requirements: .NET 10 SDK. For the installer, Inno Setup 6. For signing, signtoo
 # Debug/Release build
 dotnet build -c Release
 
-# Self-contained single-file publish (bin\Release\net10.0-windows\win-x64\publish\wmv.exe)
+# Self-contained single-file publish with the uiAccess manifest
+# (bin\Release\net10.0-windows\win-x64\publish\wmv.exe; only starts when signed and under Program Files)
 .\scripts\build-release.ps1
 
-# Installer (installer_output\wmv_Setup_<version>.exe)
-.\scripts\build-installer.ps1
-
-# Signed installer: signs wmv.exe, the installer and the uninstaller
+# Release installer (installer_output\wmv_Setup_<version>.exe): signs wmv.exe, the installer and the uninstaller
 $env:CODESIGN_CERT = "<thumbprint | subject name | path\to\cert.pfx>"
 $env:CODESIGN_PASSWORD = "<pfx password, only for .pfx>"          # optional
 $env:CODESIGN_TIMESTAMP_URL = "http://timestamp.digicert.com"     # optional (default)
 .\scripts\build-installer.ps1 -Sign
+
+# Unsigned per-user installer without uiAccess (cannot move elevated windows)
+.\scripts\build-installer.ps1 -NoUiAccess
 ```
 
 `build-installer.ps1` options:
 
 | Option | Description |
 |---|---|
-| `-Sign` | Sign wmv.exe with signtool, then let Inno Setup sign the installer and uninstaller (`SignTool` / `SignedUninstaller`). Verifies signatures afterwards. |
-| `-SkipPublish` | Reuse the existing publish output instead of running `build-release.ps1`. |
+| `-Sign` | Sign wmv.exe with signtool, then let Inno Setup sign the installer and uninstaller (`SignTool` / `SignedUninstaller`). Verifies signatures afterwards. Required unless `-NoUiAccess` is given. |
+| `-NoUiAccess` | Build a plain executable without the uiAccess manifest and a per-user installer. Signing is optional. |
+| `-SkipPublish` | Reuse the existing publish output instead of running `build-release.ps1`. The script refuses to package an exe whose uiAccess manifest does not match the selected mode. |
 | `-IsccPath` | Path to `ISCC.exe` if it is not in PATH or the default install location. |
 | `-SignToolPath` | Path to `signtool.exe` if it is not in PATH or the Windows SDK. |
-| `-UiAccess` | Experimental. Embed a `uiAccess="true"` manifest so wmv can act on windows of elevated (administrator) processes. Requires `-Sign`. The installer then installs per-machine under Program Files (administrator rights needed), because Windows only starts uiAccess executables that are signed with a machine-trusted certificate and located in a secure location. |
 
 The version is read from `<Version>` in `wmv.csproj` and passed to Inno Setup, so it only needs to be updated in one place (see `docs/version-update-checklist.md`).
 
@@ -72,4 +75,6 @@ The version is read from `<Version>` in `wmv.csproj` and passed to Inno Setup, s
 - A low-level mouse hook (`WH_MOUSE_LL`) captures middle-button press, move and release.
 - The hook callback only records state; the actual `SetWindowPos` (with `SWP_ASYNCWINDOWPOS`) runs from the message loop via a message-only window, so a slow or hung target cannot stall the hook.
 - Replayed middle clicks are injected with `SendInput`; a marker in `dwExtraInfo` plus `LLMHF_INJECTED` lets the hook pass its own events through.
+- `app.manifest` (embedded when built with `-p:UiAccess=true`, which the scripts do by default) declares `uiAccess="true"`. This lets the hook receive input aimed at elevated windows and lets `SetWindowPos` move them, without running wmv itself elevated. `dotnet build` does not embed it, so debug builds run from `bin\` as usual.
+- An invisible top-level window (`ShutdownWindow.cs`) accepts `WM_CLOSE` and session-end messages so the installer, Restart Manager and `taskkill` can stop wmv cleanly.
 - The list of excluded shell window classes and the maximized-window restore behaviour follow PowerToys Grab and Move (MIT License, Microsoft Corporation). No code was copied.

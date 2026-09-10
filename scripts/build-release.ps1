@@ -11,20 +11,21 @@ Runtime identifier. Default: win-x64.
 .PARAMETER Clean
 Delete the publish output directory before publishing.
 
-.PARAMETER UiAccess
-Embed app.manifest with uiAccess="true" so wmv can act on windows of elevated processes.
-The resulting exe only starts when it is code-signed and installed under Program Files.
+.PARAMETER NoUiAccess
+By default app.manifest (uiAccess="true") is embedded so wmv can act on windows of elevated
+processes; such an exe only starts when it is code-signed and installed under Program Files.
+-NoUiAccess produces a plain executable that runs from anywhere without a signature.
 
 .EXAMPLE
 .\scripts\build-release.ps1
 .\scripts\build-release.ps1 -Clean
-.\scripts\build-release.ps1 -UiAccess
+.\scripts\build-release.ps1 -NoUiAccess
 #>
 param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
     [switch]$Clean,
-    [switch]$UiAccess
+    [switch]$NoUiAccess
 )
 
 $ErrorActionPreference = "Stop"
@@ -61,7 +62,9 @@ $publishArgs = @(
     "-p:EnableCompressionInSingleFile=true",
     "-o", $PublishDir
 )
-if ($UiAccess) {
+if ($NoUiAccess) {
+    Write-Host "uiAccess manifest disabled (-NoUiAccess): plain executable."
+} else {
     Write-Host "uiAccess manifest enabled (the exe must be signed and installed under Program Files to run)."
     $publishArgs += "-p:UiAccess=true"
 }
