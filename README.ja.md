@@ -63,6 +63,7 @@ $env:CODESIGN_TIMESTAMP_URL = "http://timestamp.digicert.com"        # 任意（
 | `-SkipPublish` | `build-release.ps1` を実行せず、既存の publish 出力を使う。 |
 | `-IsccPath` | `ISCC.exe` が PATH や既定のインストール先にない場合のパス指定。 |
 | `-SignToolPath` | `signtool.exe` が PATH や Windows SDK にない場合のパス指定。 |
+| `-UiAccess` | 実験的。`uiAccess="true"` のマニフェストを埋め込み、管理者権限プロセスのウインドウも操作できるようにする。`-Sign` が必須。インストーラーは Program Files 配下へのマシン単位インストール（管理者権限が必要）に切り替わる。Windows は、マシンで信頼された証明書で署名され、かつ保護された場所にある uiAccess 実行ファイルしか起動しないため。 |
 
 バージョンは `wmv.csproj` の `<Version>` から読み取って Inno Setup に渡すため、更新箇所は 1 か所です（`docs/version-update-checklist.md` 参照）。
 

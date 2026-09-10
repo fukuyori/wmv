@@ -4,6 +4,8 @@
 ;   /DMyAppVersion=<version>  <Version> from wmv.csproj (defaults to 0.0.0)
 ;   /DSIGN                    enable signing (SignTool / SignedUninstaller)
 ;   /Swmvsign=<command>       sign command ($f = file to sign, $q = double quote)
+;   /DUIACCESS                the exe carries a uiAccess manifest: install per-machine under
+;                             Program Files (a secure location), which requires administrator rights
 
 #ifndef MyAppVersion
   #define MyAppVersion "0.0.0"
@@ -34,7 +36,12 @@ UninstallDisplayName={#MyAppName}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+#ifdef UIACCESS
+; uiAccess executables only start from a secure location such as {commonpf}, so install per-machine.
+PrivilegesRequired=admin
+#else
 PrivilegesRequired=lowest
+#endif
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; Close a running wmv.exe via Restart Manager before overwriting it.
@@ -76,14 +83,32 @@ Type: files; Name: "{userstartup}\{#MyAppName}.lnk"
 Type: files; Name: "{userstartup}\{#MyAppName}.lnk"
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+; shellexec: a uiAccess executable cannot be started with CreateProcess (error 740,
+; ERROR_ELEVATION_REQUIRED); it must go through ShellExecute so AppInfo can launch it.
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent shellexec
 
 [Code]
-// Terminate a resident wmv.exe on uninstall (Restart Manager is not used for uninstalls).
-function InitializeUninstall(): Boolean;
+// Stop a resident wmv.exe: ask it to close (WM_CLOSE via taskkill), give it a moment,
+// then force-kill anything that is still running. Restart Manager alone is not enough
+// because wmv has no visible main window.
+procedure StopRunningApp();
 var
   ResultCode: Integer;
 begin
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM {#MyAppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(1500);
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM {#MyAppExeName} /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(500);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  StopRunningApp();
+  Result := '';
+end;
+
+function InitializeUninstall(): Boolean;
+begin
+  StopRunningApp();
   Result := True;
 end;

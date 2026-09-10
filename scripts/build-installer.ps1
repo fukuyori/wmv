@@ -26,17 +26,27 @@ Path to ISCC.exe. If omitted, PATH and the default install locations are searche
 .PARAMETER SignToolPath
 Path to signtool.exe. If omitted, PATH and the Windows SDK are searched.
 
+.PARAMETER UiAccess
+Publish with the uiAccess="true" manifest (passed through to build-release.ps1). Requires -Sign;
+an unsigned uiAccess executable does not start.
+
 .EXAMPLE
 .\scripts\build-installer.ps1
 .\scripts\build-installer.ps1 -Sign
+.\scripts\build-installer.ps1 -Sign -UiAccess
 $env:CODESIGN_CERT = "0123456789ABCDEF0123456789ABCDEF01234567"; .\scripts\build-installer.ps1 -Sign
 #>
 param(
     [switch]$Sign,
     [switch]$SkipPublish,
     [string]$IsccPath,
-    [string]$SignToolPath
+    [string]$SignToolPath,
+    [switch]$UiAccess
 )
+
+if ($UiAccess -and -not $Sign) {
+    throw "-UiAccess requires -Sign: an unsigned uiAccess executable refuses to start."
+}
 
 $ErrorActionPreference = "Stop"
 
@@ -196,6 +206,15 @@ function Invoke-CodeSign {
     }
 }
 
+function Test-UiAccessManifest {
+    param([string]$Path)
+
+    # The manifest is stored uncompressed in the PE resources, so a plain byte search is enough.
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $text = [System.Text.Encoding]::ASCII.GetString($bytes)
+    return $text.Contains('uiAccess="true"')
+}
+
 function Get-InnoSignCommand {
     param(
         [string]$SignTool,
@@ -240,11 +259,21 @@ if ($Sign) {
 $Iscc = Resolve-IsccPath -Preferred $IsccPath
 
 if (-not $SkipPublish) {
-    & $ReleaseScript
+    & $ReleaseScript -UiAccess:$UiAccess
 }
 
 if (-not (Test-Path $PublishExePath)) {
     throw "Executable was not found: $PublishExePath (run without -SkipPublish)"
+}
+
+# Guard against packaging a uiAccess executable into a per-user installer (it would not start:
+# "A referral was returned from the server"), or a normal executable into the per-machine one.
+$exeHasUiAccess = Test-UiAccessManifest -Path $PublishExePath
+if ($exeHasUiAccess -and -not $UiAccess) {
+    throw "The published wmv.exe carries a uiAccess manifest but -UiAccess was not specified. Re-run with -Sign -UiAccess, or without -SkipPublish to publish a normal build."
+}
+if ($UiAccess -and -not $exeHasUiAccess) {
+    throw "-UiAccess was specified but the published wmv.exe has no uiAccess manifest. Re-run without -SkipPublish."
 }
 
 if ($Sign) {
@@ -253,6 +282,11 @@ if ($Sign) {
 }
 
 $IsccArgs = @("/DMyAppVersion=$Version")
+
+if ($UiAccess) {
+    # Per-machine install under Program Files; uiAccess executables do not start elsewhere.
+    $IsccArgs += "/DUIACCESS"
+}
 
 if ($Sign) {
     # /DSIGN enables the SignTool / SignedUninstaller directives in installer.iss and

@@ -63,6 +63,7 @@ $env:CODESIGN_TIMESTAMP_URL = "http://timestamp.digicert.com"     # optional (de
 | `-SkipPublish` | Reuse the existing publish output instead of running `build-release.ps1`. |
 | `-IsccPath` | Path to `ISCC.exe` if it is not in PATH or the default install location. |
 | `-SignToolPath` | Path to `signtool.exe` if it is not in PATH or the Windows SDK. |
+| `-UiAccess` | Experimental. Embed a `uiAccess="true"` manifest so wmv can act on windows of elevated (administrator) processes. Requires `-Sign`. The installer then installs per-machine under Program Files (administrator rights needed), because Windows only starts uiAccess executables that are signed with a machine-trusted certificate and located in a secure location. |
 
 The version is read from `<Version>` in `wmv.csproj` and passed to Inno Setup, so it only needs to be updated in one place (see `docs/version-update-checklist.md`).
 

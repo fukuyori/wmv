@@ -11,14 +11,20 @@ Runtime identifier. Default: win-x64.
 .PARAMETER Clean
 Delete the publish output directory before publishing.
 
+.PARAMETER UiAccess
+Embed app.manifest with uiAccess="true" so wmv can act on windows of elevated processes.
+The resulting exe only starts when it is code-signed and installed under Program Files.
+
 .EXAMPLE
 .\scripts\build-release.ps1
 .\scripts\build-release.ps1 -Clean
+.\scripts\build-release.ps1 -UiAccess
 #>
 param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
-    [switch]$Clean
+    [switch]$Clean,
+    [switch]$UiAccess
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,11 +52,21 @@ dotnet restore $ProjectPath
 if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed ($LASTEXITCODE)." }
 
 # Self-contained single-file publish so the app runs on PCs without the .NET runtime installed.
-dotnet publish $ProjectPath -c $Configuration -r $Runtime --self-contained true `
-    -p:PublishSingleFile=true `
-    -p:IncludeNativeLibrariesForSelfExtract=true `
-    -p:EnableCompressionInSingleFile=true `
-    -o $PublishDir
+$publishArgs = @(
+    "-c", $Configuration,
+    "-r", $Runtime,
+    "--self-contained", "true",
+    "-p:PublishSingleFile=true",
+    "-p:IncludeNativeLibrariesForSelfExtract=true",
+    "-p:EnableCompressionInSingleFile=true",
+    "-o", $PublishDir
+)
+if ($UiAccess) {
+    Write-Host "uiAccess manifest enabled (the exe must be signed and installed under Program Files to run)."
+    $publishArgs += "-p:UiAccess=true"
+}
+
+dotnet publish $ProjectPath @publishArgs
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed ($LASTEXITCODE)." }
 
 if (-not (Test-Path $ExePath)) {

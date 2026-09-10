@@ -9,8 +9,12 @@
     <RootNamespace>Wmv</RootNamespace>
     <AssemblyName>wmv</AssemblyName>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <Version>0.7.0</Version>
+    <Version>0.7.1</Version>
+    <!-- Keep ProductVersion as the plain version (no "+<commit hash>" suffix). -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <ApplicationIcon>wmv.ico</ApplicationIcon>
+    <!-- Build with -p:UiAccess=true to embed app.manifest (uiAccess="true"). See app.manifest for the requirements. -->
+    <ApplicationManifest Condition="'$(UiAccess)' == 'true'">app.manifest</ApplicationManifest>
     <Product>wmv</Product>
     <Description>Move any window by middle-button dragging.</Description>
     <!-- SYSLIB1054: DllImport is intentionally used instead of LibraryImport for simplicity. -->

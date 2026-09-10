@@ -7,12 +7,14 @@ internal sealed class TrayContext : ApplicationContext
 {
     private readonly NotifyIcon _icon;
     private readonly WindowMover _mover;
+    private readonly ShutdownWindow _shutdownWindow;
     private readonly ToolStripMenuItem _enabledItem;
     private readonly ToolStripMenuItem _startupItem;
 
     public TrayContext()
     {
         _mover = new WindowMover();
+        _shutdownWindow = new ShutdownWindow(ExitThread);
 
         _enabledItem = new ToolStripMenuItem("&Enabled") { Checked = true, CheckOnClick = true };
         _enabledItem.CheckedChanged += (_, _) => _mover.Enabled = _enabledItem.Checked;
@@ -75,6 +77,7 @@ internal sealed class TrayContext : ApplicationContext
             _icon.Visible = false;
             _icon.Dispose();
             _mover.Dispose();
+            _shutdownWindow.DestroyHandle();
         }
 
         base.Dispose(disposing);
