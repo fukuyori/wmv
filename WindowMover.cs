@@ -60,6 +60,7 @@ internal sealed class WindowMover : IDisposable
     private RECT _startRect;
     private bool _pressed;
     private bool _moved;
+    private bool _activatePending;
     private bool _restorePending;
     private bool _movePosted;
     private Edges _resizeEdges; // None = move, otherwise resize the given edges.
@@ -129,6 +130,7 @@ internal sealed class WindowMover : IDisposable
         _startRect = rect;
         _pressed = true;
         _moved = false;
+        _activatePending = true;
         _restorePending = maximized;
         _movePosted = false;
         _resizeEdges = edges;
@@ -279,6 +281,16 @@ internal sealed class WindowMover : IDisposable
         {
             _pressed = false;
             return;
+        }
+
+        if (_activatePending)
+        {
+            _activatePending = false;
+            // Activate and raise once, after the drag threshold is crossed and before moving.
+            // Run outside the hook; ordinary middle clicks keep their existing behaviour.
+            SetForegroundWindow(_target);
+            SetWindowPos(_target, HWND_TOP, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_ASYNCWINDOWPOS);
         }
 
         if (_restorePending)

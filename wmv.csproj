@@ -9,7 +9,7 @@
     <RootNamespace>Wmv</RootNamespace>
     <AssemblyName>wmv</AssemblyName>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <Version>0.7.1</Version>
+    <Version>0.7.2</Version>
     <!-- Keep ProductVersion as the plain version (no "+<commit hash>" suffix). -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <ApplicationIcon>wmv.ico</ApplicationIcon>

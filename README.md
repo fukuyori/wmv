@@ -15,6 +15,7 @@ Watch on YouTube: https://www.youtube.com/watch?v=1C_a8ffqcGs
 ## Features
 
 - **Move**: press the middle button anywhere on a window and drag. The top-level window under the cursor moves.
+- **Activate on drag**: the target window is activated and brought to the front before moving or resizing begins.
 - **Resize**: hold Shift, then middle-drag. The edge or corner closest to the grab point (8 handles) follows the cursor while the opposite side stays fixed. Minimum size is 150×50 px.
 - **Plain middle clicks still work**: if you release without moving past the OS drag threshold (`SM_CXDRAG` / `SM_CYDRAG`, 4 px by default), the middle click is replayed to the target application, so "open link in new tab" and similar features keep working.
 - **Maximized windows** are restored to their normal size when a drag starts and repositioned so the grab point keeps its relative position, just like dragging the title bar.
