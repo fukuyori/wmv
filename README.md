@@ -1,5 +1,7 @@
 # wmv
 
+[Changelog (Japanese)](CHANGELOG.md)
+
 [日本語版はこちら](README.ja.md)
 
 A small tray-resident Windows utility that lets you move any window by dragging it with the **middle mouse button**, and resize it with **Shift + middle drag**. No modifier key is needed for moving.

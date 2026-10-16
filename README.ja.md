@@ -2,6 +2,8 @@
 
 [English version is here](README.md)
 
+[変更履歴](CHANGELOG.md)
+
 マウスの**ミドルボタン**を押しながらドラッグすると任意のウインドウを移動でき、**Shift＋ミドルドラッグ**でサイズ変更できる Windows 用の常駐アプリです。移動に修飾キーは不要です。
 
 PowerToys の「Grab and Move」モジュール（Alt＋左ドラッグ）の代替として作成しています。
